@@ -57,6 +57,7 @@ def main():
     )
 
     object_counts = {}
+    detected_objects = set()
 
     while True:
         ret, frame = cap.read()
@@ -82,10 +83,13 @@ def main():
         # Nesne sayılarını güncelle
         for _, _, _, class_id, _ in detections:
             class_name = model.model.names[class_id]
-            if class_name in object_counts:
-                object_counts[class_name] += 1
-            else:
-                object_counts[class_name] = 1
+
+            if class_name not in detected_objects: # Her nesneyi bir kez saydırır
+                detected_objects.add(class_name)  # Nesneyi set'e ekle
+                if class_name in object_counts:
+                    object_counts[class_name] += 1
+                else:
+                    object_counts[class_name] = 1
 
         frame = zone_annotator.annotate(scene=frame)
 
