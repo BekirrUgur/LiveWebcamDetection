@@ -1,0 +1,3 @@
+pip install ultralytics
+pip install opencv-camera
+pip install pandas openpyxl xlsxwriter
