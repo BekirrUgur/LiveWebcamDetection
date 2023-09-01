@@ -15,14 +15,18 @@ ZONE_POLYGON = np.array([
     ])
 
 def parse_arguments() -> argparse.Namespace:
+
     parser = argparse.ArgumentParser(description="YOLOv8 live")
     parser.add_argument(
         "--webcam-resolution",
-        default=[1280, 720],
+        default=[1366, 720],
         nargs=2,
         type=int
     )
     args = parser.parse_args()
+    # Kamera penceresinin boyutlarını ayarla
+    cv2.namedWindow("Bekir's Cam", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Bekir's Cam", 1366, 720)
     return args
 
 def main():
