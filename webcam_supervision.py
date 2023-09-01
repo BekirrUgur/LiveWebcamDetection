@@ -24,9 +24,6 @@ def parse_arguments() -> argparse.Namespace:
         type=int
     )
     args = parser.parse_args()
-    # Kamera penceresinin boyutlarını ayarla
-    cv2.namedWindow("Bekir's Cam", cv2.WINDOW_NORMAL)
-    cv2.resizeWindow("Bekir's Cam", 1366, 720)
     return args
 
 def main():
@@ -60,6 +57,7 @@ def main():
         result = model(frame, agnostic_nms=True)[0]
 
         detections = sv.Detections.from_ultralytics(result)
+        detections = detections[detections.class_id == 0]  # Sadece person sınıfını tanımla
 
         labels = [
             f"{model.model.names[class_id]} {confidence:0.2f}"
