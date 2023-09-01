@@ -45,13 +45,7 @@ def main():
 
     zone_polygon = (ZONE_POLYGON * np.array(args.webcam_resolution)).astype(int)
     zone = sv.PolygonZone(polygon=zone_polygon, frame_resolution_wh=tuple(args.webcam_resolution))
-    zone_annotator = sv.PolygonZoneAnnotator(
-        zone=zone,
-        color=sv.Color.blue(),
-        thickness=7,
-        text_thickness=7,
-        text_scale=2
-    )
+
 
     object_counts = {}  # Nesne sayıları için boş bir sözlük oluşturun
     detected_objects = set()  # Algılanmış nesneleri takip etmek için boş bir küme oluşturun
@@ -75,9 +69,9 @@ def main():
             labels=labels
         )
 
-        # Bölgeyi tetikle ve bölge içindeki nesneleri say
+        # Bölgeyi tetikle
         zone.trigger(detections=detections)
-        zone_annotator.annotate(scene=frame)  # Zone'yi ekrana ekleyin
+
 
         # Algılanmış nesneleri say
         for _, _, _, class_id, _ in detections:
