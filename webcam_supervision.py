@@ -5,15 +5,6 @@ import numpy as np
 import argparse
 import pandas as pd
 import xlsxwriter
-
-# Belirtilen bölgeyi tanımlayın (örneğin, birinci bölge için koordinatları kullanın)
-ZONE_POLYGON = np.array([
-        [0, 0],
-        [0.5, 0],
-        [0.5, 1],
-        [0, 1]
-    ])
-
 def parse_arguments() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="YOLOv8 live")
@@ -43,11 +34,6 @@ def main():
         text_thickness=2,
         text_scale=1
     )
-
-    zone_polygon = (ZONE_POLYGON * np.array(args.webcam_resolution)).astype(int)
-    zone = sv.PolygonZone(polygon=zone_polygon, frame_resolution_wh=tuple(args.webcam_resolution))
-
-
     object_counts = {}  # Nesne sayıları için boş bir sözlük oluşturun
     detected_objects = set()  # Algılanmış nesneleri takip etmek için boş bir küme oluşturun
 
@@ -70,11 +56,6 @@ def main():
             detections=detections,
             labels=labels
         )
-
-        # Bölgeyi tetikle
-        zone.trigger(detections=detections)
-
-
         # Algılanmış nesneleri say
         for _, _, _, class_id, _ in detections:
             class_name = model.model.names[class_id]
@@ -109,7 +90,7 @@ def main():
         if cv2.waitKey(30) == 27:
             # Nesne sayılarını bir Excel dosyasına kaydet
             output_filename = "object_counts.xlsx"
-            df = pd.DataFrame(list(object_counts.items()), columns=["Object", "Count"])
+            df = pd.DataFrame(list(class_counts.items()), columns=["Object", "Count"])
 
             with pd.ExcelWriter(output_filename, engine="xlsxwriter") as writer:
                 df.to_excel(writer, sheet_name="ObjectCounts", index=False)
