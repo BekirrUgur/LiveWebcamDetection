@@ -6,7 +6,7 @@ import argparse
 import pandas as pd
 import xlsxwriter
 
-# Sayım alanı çerçevesi belirleniyor
+# Belirtilen bölgeyi tanımlayın (örneğin, birinci bölge için koordinatları kullanın)
 ZONE_POLYGON = np.array([
         [0, 0],
         [0.5, 0],
@@ -14,7 +14,7 @@ ZONE_POLYGON = np.array([
         [0, 1]
     ])
 
-def parse_arguments() -> argparse.Namespace: # Çözünürlük
+def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="YOLOv8 live")
     parser.add_argument(
         "--webcam-resolution",
@@ -25,27 +25,24 @@ def parse_arguments() -> argparse.Namespace: # Çözünürlük
     args = parser.parse_args()
     return args
 
-
 def main():
 
     args = parse_arguments()
     frame_width, frame_height = args.webcam_resolution
 
-    cap = cv2.VideoCapture(0) # Pc kamerası "0"
+    cap = cv2.VideoCapture(0)
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, frame_width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, frame_height)
 
-
     model = YOLO("yolov8n.pt")
 
-    # Tanılama çerçevesi
+    # Tanıma çerçevesi ve bölgeyi başlatın
     box_annotator = sv.BoxAnnotator(
         thickness=2,
         text_thickness=2,
         text_scale=1
     )
 
-    # Sayım kutusu
     zone_polygon = (ZONE_POLYGON * np.array(args.webcam_resolution)).astype(int)
     zone = sv.PolygonZone(polygon=zone_polygon, frame_resolution_wh=tuple(args.webcam_resolution))
     zone_annotator = sv.PolygonZoneAnnotator(
@@ -56,8 +53,8 @@ def main():
         text_scale=2
     )
 
-    object_counts = {}
-    detected_objects = set()
+    object_counts = {}  # Nesne sayıları için boş bir sözlük oluşturun
+    detected_objects = set()  # Algılanmış nesneleri takip etmek için boş bir küme oluşturun
 
     while True:
         ret, frame = cap.read()
@@ -78,33 +75,49 @@ def main():
             labels=labels
         )
 
+        # Bölgeyi tetikle ve bölge içindeki nesneleri say
         zone.trigger(detections=detections)
+        zone_annotator.annotate(scene=frame)  # Zone'yi ekrana ekleyin
 
-        # Nesne sayılarını güncelle
+        # Algılanmış nesneleri say
         for _, _, _, class_id, _ in detections:
             class_name = model.model.names[class_id]
+            key = f"{class_name}"
 
-            if class_name not in detected_objects: # Her nesneyi bir kez saydırır
-                detected_objects.add(class_name)  # Nesneyi set'e ekle
-                if class_name in object_counts:
-                    object_counts[class_name] += 1
+            # Eğer bu nesne daha önce algılanmadıysa ve sayılmadıysa, sayıyı 1 olarak başlat
+            if key not in detected_objects:
+                detected_objects.add(key)
+                object_counts[key] = 1
+            else:
+                object_counts[key] += 1  # Eğer daha önce algılandıysa, sayıyı artır
+
+                # Her sınıf için aynı anda görünen nesne sayısını hesaplayın
+
+            class_counts = {}  # Sınıf sayılarını saklamak için bir sözlük oluşturun
+            for _, _, _, class_id, _ in detections:
+                class_name = model.model.names[class_id]
+                if class_name in class_counts:
+                    class_counts[class_name] += 1
                 else:
-                    object_counts[class_name] = 1
+                    class_counts[class_name] = 1
 
-        frame = zone_annotator.annotate(scene=frame)
+            # Aynı sınıftan kaç nesne olduğunu ekrana yazdır
+            for class_name, count in class_counts.items():
+                cv2.putText(frame, f"{class_name}: {count}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
 
         cv2.imshow("Bekir's Cam", frame)
+        # Nesne sayısını ekrana kırmızı renkte yazdır
 
-        if(cv2.waitKey(30) == 27):
-            # Belirlediğim nesneleri excel dosyası formatında kaydediyor
+
+        if cv2.waitKey(30) == 27:
+            # Nesne sayılarını bir Excel dosyasına kaydet
             output_filename = "object_counts.xlsx"
             df = pd.DataFrame(list(object_counts.items()), columns=["Object", "Count"])
 
             with pd.ExcelWriter(output_filename, engine="xlsxwriter") as writer:
                 df.to_excel(writer, sheet_name="ObjectCounts", index=False)
             break
-
-
 
 if __name__ == "__main__":
     main()
